@@ -1,0 +1,13 @@
+{
+    "welcome": "Hello, I am X3 bot."
+    ,"main": "How can I help you?"
+    ,"help-basic": "Right now i can help you only with not posted invoices"
+    ,"placeholder": "WIP"
+    ,"woops": "Woops something went wrong"
+    ,"home-selection": "Please select option."
+    ,"home-invoices" : "Not posted invoices"
+    ,"home-orders": "Uninvoiced orders"
+    ,"invoices-bp": "If you want me to check for any specific business partner please specify his code"
+    ,"invoices-number": "You have %s not posted invoices"
+
+}
