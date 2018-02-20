@@ -1,3 +1,6 @@
 {
- "Auth": "Basic YWRtaW46YWRtaW4="
+ "Auth": "Basic YWRtaW46YWRtaW4=",
+ "user": "xxxx",
+ "password": "xxxx",
+ "x3_adress": "https://address:port"
 }
