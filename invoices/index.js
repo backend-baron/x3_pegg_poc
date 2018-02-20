@@ -20,10 +20,10 @@ module.exports = function (parent) {
                     session.sendTyping();
                     let url;
                     if (results.response.toLowerCase() == "no"){
-                        url = config['x3_adress'] + '/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.$query'
+                        url = config['apiUrl'] + '/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.$query'
                     } else {
-                        url = config['x3_adress'] + '/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.' +
-                                                    '$query&where=(BPCINV%20eq%20%22' + results.response + '%22)'
+                        url = config['apiUrl'] + '/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.' +
+                                                 '$query&where=(BPCINV%20eq%20%22' + results.response + '%22)'
                     }
                     let cookie;
                     let responseSuccess = false;
