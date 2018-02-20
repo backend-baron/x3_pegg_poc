@@ -1,14 +1,16 @@
-var builder = require('botbuilder');
-var sagebuilder = require('../../../libraries/sage-botlibraries-botbuilder');
-var request = require('request');
-var config = require('../config');
+const builder = require('botbuilder');
+const sagebuilder = require('../../../libraries/sage-botlibraries-botbuilder');
+const fetch = require('node-fetch');
+const jsonfile = require('jsonfile');
+const file = 'data.json'
+const config = require('../config');
 
 module.exports = function (parent) {
     return {
         //library Export. This allows us to register the library with the bot
         libraryExport: function () {
-            //register the library. 
-            var library = sagebuilder.library(parent.botName(), 'invoices');
+            //register the library.
+            let library = sagebuilder.library(parent.botName(), 'invoices');
             //Define the dialogs that will be called
             library.dialog('not_posted', [
                 function (session, results) {
@@ -16,29 +18,59 @@ module.exports = function (parent) {
                 },
                 function (session, results, next) {
                     session.sendTyping();
+                    let url;
                     if (results.response.toLowerCase() == "no"){
-                        var url = "http://admin:admin@scmx3-dev-mja.sagefr.adinternal.com:8124/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.$query"
+                        url = config['apiUrl'] + '/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.$query'
                     } else {
-                        var url = 'http://admin:admin@scmx3-dev-mja.sagefr.adinternal.com:8124/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.$query&where=(BPCINV%20eq%20%22' + results.response + '%22)'
+                        url = config['apiUrl'] + '/sdata/x3/erp/LOCALDEV/SINVOICEV?representation=SINVOICEV.' +
+                                                 '$query&where=(BPCINV%20eq%20%22' + results.response + '%22)'
                     }
-                    // console.log(session.userData.sessionCookie)
-                    var options = {
-                        url: url,
-                        headers: {
-                            'Authorization':  config.get('Auth'),
-                            // 'Cookie': session.userData.sessionCookie,
-                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'}
-                    };
-                    request(options, function (err, response, body) {
-                        if (response.statusCode == 200) {
-                            var body_json = JSON.parse(body.replace(/\\%/g, '%'));
-                            var invoices_num = body_json.$resources.length
-                            session.send(session.localizer.gettext(session.preferredLocale(), "invoices-number"), invoices_num);
+                    let cookie;
+                    let responseSuccess = false;
+                    try {
+                      cookie = jsonfile.readFileSync(file)["cookie"];
+                    } catch(err){}
+
+                    fetch(url, {
+                      method: 'GET',
+                      headers: {
+                        'Accept': 'text/plain',
+                        'Cookie': cookie
+                      }
+                    }).then(response => response.text())
+                      .then((responseData) => {
+                        let bodyJson = JSON.parse(responseData.replace(/\\%/g, '%'));
+                        if(bodyJson.hasOwnProperty('$diagnoses')) {
+                          let authCode = new Buffer(config['user'] + ':' + config['password']).toString('base64');
+                          authCode = 'Basic ' + authCode
+                          return fetch(url, {
+                            method: 'GET',
+                            headers: {
+                              'Accept': 'text/plain',
+                              'Authorization': authCode
+                            }
+                          }).then(response2 => {
+                              cookie = response2.headers.get("set-cookie");
+                              cookie = cookie.substring(0, cookie.indexOf(';'));
+                              const sessionX3 = {cookie: cookie};
+                              jsonfile.writeFile(file, sessionX3, {spaces: 2, EOL: '\r\n'});
+                              return response2.text();})
+                            .then((responseData2) => {
+                              bodyJson = JSON.parse(responseData2.replace(/\\%/g, '%'));
+                              responseSuccess = true;
+                            }).catch((error2) => session.send(session.localizer.gettext(session.preferredLocale(),
+                                                                                        "woops")));
                         } else {
-                            session.send(session.localizer.gettext(session.preferredLocale(), "woops"));
+                          responseSuccess = true;
                         }
-                        session.endDialog();
-                    });
+                        if (responseSuccess) {
+                          const invoicesNum = bodyJson.$resources.length
+                          session.send(session.localizer.gettext(session.preferredLocale(),"invoices-number"),
+                                       invoicesNum);
+                        }
+
+                 	  }).catch((error) => session.send(session.localizer.gettext(session.preferredLocale(), "woops")));
+                    session.endDialog();
                 },
 
             ]).triggerAction({
